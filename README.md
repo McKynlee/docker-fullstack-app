@@ -60,7 +60,8 @@ The first file we're going to dive into is the `docker-compose.yml` file that ti
       server:
     ```
 
-### Docker Compose Configuration for Client Container
+
+### Client Container, Docker Compose Configuration
 
 1. The configuration settings in the `docker-compose.yml` file are as follows:
 
@@ -172,24 +173,7 @@ Normally the configuration for the Docker image is setup in a file just named `D
     CMD ["npm", "run", "client"]
     ```
 
-
-### Docker Compose Commands
-
-[Docker Compose Commands](https://docs.docker.com/compose/reference/)
-
-1. In order to standup our new setup run: `docker-compose up`
-    - Builds, (re)creates, starts, and attaches to containers for a service. Unless they are already running, this command also starts any linked services.
-    - Running `docker-compose up -d` starts the containers in the background and leaves them running.
-1. In order to view the containers run: `docker-compose images`
-    - List images used by the created containers.
-
-
-### Running Multiple Containers
-
-The biggest benefit to using the `docker-compose.yml` is that we can now run multiple containers from the one **Docker Image** allowing us to spin up an entire full stack application. Where as before we had to run `create db`, several SQL queries, `npm instal`, `npm run server`, & `npm run client` in order to spin up our application and develop locally with **Docker Compose** we just run `docker-compose up` and it's all taken care of.
-
-
-#### Database Container
+### Database Container, Docker Compose Configuration
 
 1. create a `database` directory in the root of the project folder
 1. create an `init.sql` file inside of the `database` directory
@@ -199,11 +183,11 @@ The biggest benefit to using the `docker-compose.yml` is that we can now run mul
 
 Before we used these types of files to make it easier for other people setup the local environment for our application but now we can use it to actually setup and run our database. Now let's configure **Docker Compose** with a new container to handle our database.
 
-1. add a new container to the `docker-compose.yml` file for the database:
+1. If we take a look at the **database** container in the `docker-compose.yml` file we can examine the configuration for the **database** container environment. This one is gonna look quite a bit different from the **client** container.
 
     ```yml
     services:
-        ## ... client container settings
+        ## ... CLIENT CONTAINER SETTINGS ...
 
         ##
         ## CONTAINER for Postgres database
@@ -227,19 +211,30 @@ Before we used these types of files to make it easier for other people setup the
                 - ./database/data.sql:/docker-entrypoint-initdb.d/20-data.sql
     ```
 
-1. Let's breakdown what these settings are doing
-    - `database` - defines the name for the new container
-    - `image` - inside of the `Dockerfile` we used for the `client` container we defined a base image using `FROM` this is the `docker-compose.yml` equivalent of that so in this case our base image is `postgres:latest`
-    - `restart` - we are telling to always restart the database when inactive
-    - `ports` - we are exposing the Docker container postgres port that is be default `5432` to our **HOST** machine on port `54320` so as not to conflict with any other postgres database we may have running (`HOST:CONTAINER`)
-    - `environment` - just like you have seen us set up environment variables on a `.env` file locally we can set some environment configuration variables for the **Docker Container**, the majority of the environment configurations are things that our base image leverages in order to spin up postgres
-        - `POSTGRES_USER` - this is the database username used to access the database
-        - `POSTGRES_PASSWORD` - this is the password associated with the provided username
-        - `POSTGRES_DB` - this is the name of the postgres database
-        - `POSTGRES_HOST` - this is the base host location `localhost` where Postico will access the database
-    - `volumes` - we have seen this use in out `client` container but the way in which we are using it here is very different because it's actually running our SQL files for us in order to setup our tables/schema and seed some data inside of there
-        - `[PATH_TO_SQL]:/docker-entrypoint-initdb.d/[SQL_FILE_NAME].sql` - in the first part you should put the path to the `.sql` file in your codebase relative to the `docker-compose.yml` file and in the second part you are going to use a very specific naming structure to rename the file that you are pointing to in your project directory where you start with a number `10-` and then use the same name as your origin file for the second part `init.spl`
-            - The numbers being used are the key here because that helps us to run the SQL files in a specific order
+*Let's breakdown what the Yaml configuration settings are for the "**database**" container.*
+
+**`database:` container configuration**
+
+1. `image` - inside of the `Dockerfile` we used for the `client` container we defined a base image using `FROM` this is the `docker-compose.yml` equivalent of that so in this case our base image is `postgres:latest`
+1. `restart` - we are telling to always restart the database when inactive
+1. `ports` - we are exposing the Docker container postgres port that is be default `5432` to our **HOST** machine on port `54320` so as not to conflict with any other postgres database we may have running (`HOST:CONTAINER`)
+1. `environment` - just like you have seen us set up environment variables on a `.env` file locally we can set some environment configuration variables for the **Docker Container**, the majority of the environment configurations are things that our base image leverages in order to spin up postgres
+    - `POSTGRES_USER` - this is the database username used to access the database
+    - `POSTGRES_PASSWORD` - this is the password associated with the provided username
+    - `POSTGRES_DB` - this is the name of the postgres database
+    - `POSTGRES_HOST` - this is the base host location `localhost` where Postico will access the database
+1. `volumes` - we have seen this use in out `client` container but the way in which we are using it here is very different because it's actually running our SQL files for us in order to setup our tables/schema and seed some data inside of there
+    - `[PATH_TO_SQL]:/docker-entrypoint-initdb.d/[SQL_FILE_NAME].sql` - in the first part you should put the path to the `.sql` file in your codebase relative to the `docker-compose.yml` file and in the second part you are going to use a very specific naming structure to rename the file that you are pointing to in your project directory where you start with a number `10-` and then use the same name as your origin file for the second part `init.spl`
+        - The numbers being used are the key here because that helps us to run the SQL files in a specific order
+
+
+#### Server Container
+
+Now that we have the `client` environment and `database` setup and working in our `docker-compose.yml` let's take a look at setting up the server.
+
+### Running Multiple Containers
+
+The biggest benefit to using the `docker-compose.yml` is that we can now run multiple containers from the one **Docker Image** allowing us to spin up an entire full stack application. Where as before we had to run `create db`, several SQL queries, `npm instal`, `npm run server`, & `npm run client` in order to spin up our application and develop locally with **Docker Compose** we just run `docker-compose up` and it's all taken care of.
 
 Now that we have our configurations setup let's go ahead and build out our new environment with both the client and database running. We'll want to make sure to first remove any previous **Docker Images** we may have had running and then spin up our new **Docker Containers**.
 
@@ -247,13 +242,13 @@ Now that we have our configurations setup let's go ahead and build out our new e
 1. may see some images that have been created listed out in the console
 
     ```
-           Container                Repository         Tag       Image Id      Size 
+           Container                Repository         Tag       Image Id      Size
     --------------------------------------------------------------------------------
     dockerize-app_client_1     dockerize-app_client   latest   ca3551b22fa3   407 MB
     ```
 
 1. run: `docker-compose stop`
-    - ensures that all the images have stopped 
+    - ensures that all the images have stopped
 1. run: `docker-compose rm`
     - removes all of the stopped images and you can verify by running `docker-compose images` again
 1. run: `docker-compose up`
@@ -270,9 +265,16 @@ Now that we have our configurations setup let's go ahead and build out our new e
 1. Click **Connect** and then Postico will open up a view of the database and you'll se that not only did it create our **"employees"** table for us but it also populated some initial data for us as well based on the queries in our SQL files
 
 
-#### Server Container
 
-Now that we have the `client` environment and `database` setup and working in our `docker-compose.yml` let's take a look at setting up the server.
+### Docker Compose Commands
+
+[Docker Compose Commands](https://docs.docker.com/compose/reference/)
+
+1. In order to standup our new setup run: `docker-compose up`
+    - Builds, (re)creates, starts, and attaches to containers for a service. Unless they are already running, this command also starts any linked services.
+    - Running `docker-compose up -d` starts the containers in the background and leaves them running.
+1. In order to view the containers run: `docker-compose images`
+    - List images used by the created containers.
 
 
 #### Docker Command Cheat Sheet
