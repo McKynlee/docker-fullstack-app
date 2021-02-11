@@ -1,12 +1,12 @@
 # Base image we are modifying from https://hub.docker.com/
-FROM node:12-alpine
+FROM node:14.15.4-alpine3.10
 
-# set working directory
+# Set working directory
 RUN mkdir -p /app/client
 WORKDIR /app/client
 
-# install and cache app dependencies
-COPY package.json /app/client/package.json
+# Install and cache app dependencies
+COPY ./package.json /app/client/package.json
 RUN npm install
 
 COPY . /app/client

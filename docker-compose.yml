@@ -15,7 +15,8 @@ services:
       - 3000:3000 # expose ports - HOST:CONTAINER (for create-react-app)
       - 35729:35729 # expose ports - HOST:CONTAINER (for serviceworker warm reloading)
     volumes:
-      - './client:/app/client'
+      - './src:/app/client/src'
+      - './public:/app/client/public'
       - '/app/client/node_modules'
     depends_on:
       - server
