@@ -228,15 +228,68 @@ Before we used these types of files to make it easier for other people setup the
         - The numbers being used are the key here because that helps us to run the SQL files in a specific order
 
 
-#### Server Container
+### Server Container, Docker Compose Configuration
 
-Now that we have the `client` environment and `database` setup and working in our `docker-compose.yml` let's take a look at setting up the server.
+With the **client** and **database** container configurations in place we can now focus on the last piece, the **server** container. As we examine the configuration settings for the server container you'll notice it look very similar to the **client** container with some minor differences.
 
-### Running Multiple Containers
+1. Let's take a look at the **server** container in the `docker-compose.yml` file.
+
+    ```yml
+    services:
+        ## ... CLIENT CONTAINER SETTINGS ...
+
+        ## ... DATABASE CONTAINER SETTINGS ...
+
+        ##
+        ## CONTAINER for Server Application
+        ## to test service run:
+        ##     docker-compose up --build -d server
+        ## ----------------------------------------
+        server:
+          build:
+            context: ./
+            dockerfile: ./Dockerfile.server
+          ports:
+            - 5000:5000 # expose ports - HOST:CONTAINER
+          environment:
+            PORT_DB: 5432
+            POSTGRES_USER: dockerpguser
+            POSTGRES_PASSWORD: linkAwake342
+            POSTGRES_DB: employee_portal
+            POSTGRES_HOST: database
+          volumes:
+            - './server:/app/server'
+            - '/app/server/node_modules'
+          depends_on:
+            - database
+          command: npm run server
+    ```
+
+*Let's breakdown what the Yaml configuration settings are for the "**server**" container.*
+
+**`server:` container configuration**
+
+1. `build:` - allows us to set custom build settings for this particular container
+    - `context:` - sets the build context and if Docker configuration file is not set to a specific file it will look for a `Dockerfile` existing in the root of the directory defined in the context
+    - `dockerfile:` - give the path to the Docker configuration file that we are using for the client container, we'll come back to talk about the `Dockerfile.server`
+1. `ports:` - here we define the various ports that we want exposed from our container to our host
+    - `- HOST:CONTAINER` - the `HOST` port is the port that will be available on your computer @ `http://localhost:HOST` and `CONTAINER` represents that port that is being exposed inside the **Docker Container**
+1. `environment:` - this is how we set environment variable inside the Docker container just like how we have used a `.env` file in the past. Everything we setup here is getting committed to our repository so we want to be careful with sensitive information. We'll come back to how to connect our `.env` file to this configuration. For this particular container we need to pass it the Database settings. The names for these environment variables are arbitrary you just want to make sure it's something that makes sense.
+    - the values should match with what we are using in the **database** container
+1. `volumes:` - mounts host paths or named volumes, specified as sub-options to a service.
+    - this setting replaces the `-v $(pwd):/app` option that were added to the `docker run` command we used previously, we are mounting these volumes to make sure `nodemon` re-runs our server when we make changes to the `/server` directory
+    - `- ./[LOCAL_DIRECTORY]:/[CONTAINER_DIRECTORY]`, first we define the local directory where we might be making file changes and then we define the location inside of the container to associate those changes to. The local and container directory paths **must be** separated by a `:` for this to process correctly
+    - `- './server:/app/server'`, helps watch for changes inside of the `/server` directory
+    - `- '/app/server/node_modules'`, helps watch for changes to `/node_modules`
+1. `depends_on:` - allows us to define the various other containers that this **server** container depends on in order to run
+1. `command:` - this should be the run command needed to start the application and it will override the `CMD` set in the `Dockerfile`
+    - `npm run server` - it will run the `npm run server` command that we give it in the terminal inside of the **server** container
+
+## Running Multiple Containers
 
 The biggest benefit to using the `docker-compose.yml` is that we can now run multiple containers from the one **Docker Image** allowing us to spin up an entire full stack application. Where as before we had to run `create db`, several SQL queries, `npm instal`, `npm run server`, & `npm run client` in order to spin up our application and develop locally with **Docker Compose** we just run `docker-compose up` and it's all taken care of.
 
-Now that we have our configurations setup let's go ahead and build out our new environment with both the client and database running. We'll want to make sure to first remove any previous **Docker Images** we may have had running and then spin up our new **Docker Containers**.
+Now that we have gone through all of the configurations let's go ahead and build out our new environments and run the containers. We'll want to make sure to first remove any previous **Docker Images** we may have had running and then spin up our new **Docker Containers**.
 
 1. run: `docker-compose images`
 1. may see some images that have been created listed out in the console
@@ -249,7 +302,7 @@ Now that we have our configurations setup let's go ahead and build out our new e
 
 1. run: `docker-compose stop`
     - ensures that all the images have stopped
-1. run: `docker-compose rm`
+1. run: `docker system prune`
     - removes all of the stopped images and you can verify by running `docker-compose images` again
 1. run: `docker-compose up`
     - this will load and build all of our images and then run our containers
