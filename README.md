@@ -1,34 +1,9 @@
 # Dockerizing a Full Stack Application
 
-The following is a brief description of Docker Containers and what they have to offer based on the [getting started page](https://www.docker.com/get-started) of the [docker site](https://www.docker.com).
-
-Building and deploying applications can be made faster with containers. Docker containers wrap up software and its dependencies into a standardized unit for software development that includes everything needed to run: code, runtime, system tools, and libraries. This guarantees that the application will always run the same and makes collaboration much simpler (see [docker's get started page](https://www.docker.com/get-started)). The containers help to ensure that all environments have the exact same setups.
-
-Docker containers whether [Windows](https://www.docker.com/products/windows-containers) or Linux are backed by Docker tools and APIs helping to build consistent environments:
-
-- Onboard faster and stop wasting hours trying to set up development environments, spin up new instances and make copies of production code to run locally.
-- Enable polyglot development and use any language, stack or tools without worry of application conflicts.
-- Eliminate environment inconsistencies and the "works on my machine" problem by packaging the application, configs and dependencies into an isolated container.
-- Alleviate concern over application [security](https://www.docker.com/products/security)
-
-[Try Docker containers](https://www.docker.com/get-started) with free, hosted lab tutorials or download and take a tutorial to start building apps.
+If we have a fullstack application we can no longer run Docker using a single container. We will need to configure and run many containers that will need to be able to communicate with one another.
 
 
-## Introducing the Issue
-
-We have a simple Client Side / Front-End Application that we want to maintain across different teammates and different environments. Typically we would be asking our team to run:
-    - `npm install`
-    - `npm start`
-After that we would expect that they should be able to run and develop for the application locally. Seems pretty straight forward at first glance but...
-
-1. What if someone on the team is on Windows and not Mac?
-1. What if someone on the team has an older version of Node.js loaded that isn't compatible with our application?
-1. What if someone on the team doesn't even have Node.js installed?
-
-Luckily **Docker** can help us to solve these issue by handling environment setup, dependency loading, and launching of our application all in one place. Best of all regardless of who is using it the environment will run consistently for any team member working on the project.
-
-
-## Installing Docker
+## Installing Docker (MUST have Docker installed)
 
 1. Navigate to the [Docker Get Started](https://www.docker.com/get-started) page.
 1. Click on the **Download Desktop and Take a Tutorial** button on the right side of the page.
@@ -39,147 +14,163 @@ Luckily **Docker** can help us to solve these issue by handling environment setu
 1. Downloading the Docker desktop application in the BG.
 
 
-## Lesson Stages
-
-- [Single Docker Container](/#Single-Docker-Container)
-- [Adding Docker Compose](/#Adding-Docker-Compose)
-- [Running Multiple Containers](/#Running-Multiple-Containers)
-    - [Database Container](/#Database-Container)
-    - [Server Container](/#Server-Container)
-
-
-## Single Docker Container
-
-We're gonna start by looking at how we setup a single **Docker Container**. This single **Container** will be used to launch and run a React application built using `create-react-app` as the base setup.
-
-
-### Dockerfile, Docker with Single Container
-
-1. In order to setup a single docker container for your development environment you need to create a file named `Dockerfile` in the root of your project directory.
-
-1. In order to set the base environment we use an existing image from the [Docker Hub](https://hub.docker.com) using the `FROM` setting in the `Dockerfile`.
-
-    ```
-    # Base image we are modifying from https://hub.docker.com/
-    FROM node:current-alpine
-    ```
-
-1. Make a new directory and set it as the working directory for the Docker image.
-
-    ```
-    # set working directory
-    RUN mkdir -p /app
-    WORKDIR /app
-    ```
-
-1. Copy over the existing `package.json` to the new working directory and install the application dependencies using `npm install`.
-
-    ```
-    # install and cache app dependencies
-    COPY package.json /app/package.json
-    RUN npm install
-    ```
-
-1. After dependency installation copy over all assets to the working directory.
-
-    ```
-    COPY . /app
-    ```
-
-1. Ensure that the default `create-react-app` port is exposed to the network created by Docker.
-
-    ```
-    # Exposing a specific PORT for viewing the application
-    EXPOSE 3000
-    ```
-
-1. Define the final command(s) that need to be run to kick off the application when the container launches.
-
-    ```
-    # Run final command to kick off client build
-    CMD ["npm", "start"]
-    ```
-
-
-#### Dockerfile Commands
-
-That's great we have a configuration for **Docker** but how do we actually use it. Because we downloaded the **Docker** desktop application we now have access to the command line tools which we'll be leveraging to build our **Docker Image** and then run the **Docker Container**.
-
-**Build and Tag the Docker Image:**
-
-`docker build --tag=[CONTAINER_NAME] .`
-
-1. `docker build` - is the command used to build our application's Docker image
-1. `--tag=[CONTAINER_NAME]` - the tag flag assigns a tag or name to the built docker image so it can be used to run the docker container based on the image
-    - `[CONTAINER_NAME]` - is a placeholder and can be whatever you want to use in order to identify the Docker image
-1. ` .` - is a required argument showing the location of the Dockerfile to be used for the Docker configuration
-
-**Running the Docker Container:**
-
-`docker run -p 3001:3000 [CONTAINER_NAME]`
-
-1. The [docker run command](https://docs.docker.com/engine/reference/commandline/run/) creates a new container instance, from the image we just created, and runs it.
-1. `-p 3001:3000` exposes port 3000 to other Docker containers on the same network (for inter-container communication) and port 3001 to the host.
-1. Additionally the `-d` option can be used in order to run the container in detach mode.
-
-**Warm Reloading with `create-react-app`:**
-
-Our application was built using `create-react-app` which does support web page reloading. 
-
-To make this work, we need to do two things:
-1. Mount the current working directory into the Docker container
-    - `-v $(pwd):/app`, will be added to our `docker run` command
-1. Expose the WebSocket port
-    - The WebSocket thing is set up by exposing port 35729 to the host (`-p 35729:35729`).
-    - Add `EXPOSE 35729` to our `Dockerfile` just below the other exposed port.
-    - `-p 35729:35729`, will then also be added to our `docker run` command
-
-When we run our container the command should now be:
-
-`docker run -p 3001:3000 -p 35729:35729 -v $(pwd):/app [CONTAINER_NAME]`
-
-
 ## Adding Docker Compose
 
-We had to add a lot of additional settings to the **Docker** commands but we can repurpose them as configuration settings in a new **Docker** yaml configuration file. This configuration file can hold many of these custom settings along with eventually letting us run and configure many different **Docker Containers**.
+We had to add a lot of additional settings to the **Docker** commands to get it to work the way we wanted to. With a multiple container setup we can re-purpose these additional command flags as configuration settings in a new **Docker** configuration file. This configuration file can hold these custom settings along with eventually letting us run and configure many different **Docker Containers**.
 
-1. Create a new file called `docker-compose.yml` at the root of the project.
+### File Structure
+
+Before we dive into things let's take a look at what is different in our project file structure first. We can see the `/src` and `/public` directories for our client-side code in their place like we're used to. There is even a `/sever` directory for our server-side (Back-End) code as we have had previously. What happened to our `database.sql` file though?
+
+#### Database Files
+
+You might notice that the `database.sql` file seems to be missing from the root of our project. The database queries have been moved inside of a new `/database` directory. In the `/database` directory we have two separate SQL files. There is the `init.sql` file and the `data.sql` file. Let's take a look at the `init.sql` file first.
+
+`/database/init.sql` - All of the `CREATE TABLE` queries will go in this file.
+`/database/data.sql` - All of the `INSERT` queries for populating the tables will go in this file.
+
+These two SQL files are separated into `CREATE TABLE` and `INSERT` queries to ensure that they get run in a specific order. Now that we are working with docker we can configure Docker to run these files for us in order to setup the Database for our project.
+
+#### Docker Configuration Files
+
+The other new files that you'll notice at the root of the project are 3 Docker configuration files. These are the `Dockerfile.client`, `Dockerfile.server`, & `docker-compose.yml` files. Before we dive into each of these files let's talk a little bit about why they are here.
+
+- In the `Dockerfile.client` we setup all of the configuration settings specific to the Docker image for the client-side environment.
+- In the `Dockerfile.server` we setup all of the configuration settings specific to the Docker image for the server-side environment.
+- In the `docker-compose.yml` we configure all three of our Docker container that will be needed to run our fullstack application; the client, server, and database.
+
+The first file we're going to dive into is the `docker-compose.yml` file that ties everything together.
+
+### Docker Compose Overview
+
+1. We're gonna take a look at a new kind of file called a YAML file. The important thing to keep in mind with YAML files is that **indentation** is **extremely important**.
+1. Take note of a new file at the root of our project called the `docker-compose.yml`. This particular file must absolutely be named `docker-compose.yml` for the Docker CLI to recognize it.
+1. Inside of the `docker-compose.yml` file you'll notice 2 major sections at the first indentation level. One is `version:` and the other is `services:`.
+    - `version:` - Version defines the version of the docker compose configurations we are using. In this cas we are working with version # 3.
+    - `services:` - Services is where we define and configure each of the containers we want to work with. This is where the majority of our configuration goes.
+1. The next level of indentation in from the `services:` is where we define our different containers giving them names to be able to reference them. Each container represents a different environment. The key here is that each must be only one indentation in from `services:`.
+
+    ```yml
+    services:
+      # client-side application environment
+      client:
+      # database environment
+      database:
+      # server-side application environment
+      server:
+    ```
+
+### Docker Compose Configuration for Client Container
+
 1. The configuration settings in the `docker-compose.yml` file are as follows:
 
     ```yml
     version: '3'
 
     services:
-        ##
-        ## CONTAINER for Client Side Application
-        ## to test service run:
-        ##     docker-compose up --build -d client
-        ## ----------------------------------------
-        client:
-            build: 
-                context: ./
-            ports:
-                - 3001:3000 # expose ports - HOST:CONTAINER (for create-react-app)
-                - 35729:35729 # expose ports - HOST:CONTAINER (for serviceworker warm reloading)
-            volumes:
-                - '.:/app'
-                - '/app/node_modules'
-            command: npm start
+      ##
+      ## CONTAINER for Client Side Application
+      ## to test service run:
+      ##     docker-compose up --build -d client
+      ## ----------------------------------------
+      client:
+        stdin_open: true
+        build:
+          context: ./
+          dockerfile: ./Dockerfile.client
+        ports:
+          - 3000:3000 # expose ports - HOST:CONTAINER (for create-react-app)
+          - 35729:35729 # expose ports - HOST:CONTAINER (for serviceworker warm reloading)
+        volumes:
+          - './client:/app/client'
+          - '/app/client/node_modules'
+        depends_on:
+          - server
+        command: npm run client
     ```
 
-**Let's breakdown what the Yaml configuration settings are.**
+*Let's breakdown what the Yaml configuration settings are for the "**client**" container.*
 
-1. `version` - sets the version of the Docker Compose Yaml file we are working with
-1. `services` - the names written as children of this define the different containers that we want to create like our `client` container
-1. For the individual `client` container:
-    - `build` - allows us to set custom build settings for this particular container
-        - `context` - sets the build context and if `dockerfile` is not set to a specific file it will look for a `Dockerfile` existing in the root of the directory defined in the context
-    - `ports` - here we define the various ports that we want exposed from our container to our host
-        - `HOST:CONTAINER` - the `HOST` port is the port that will be available on your computer @ `http://localhost:HOST` and `CONTAINER` represents that port that is being exposed inside the **Docker Container**
-        - this setting replaces the `-p 3001:3000 -p 35729:35729` options that were added to the `docker run` command we used previously
-    - `volumes` - mounts host paths or named volumes, specified as sub-options to a service.
-        - this setting replaces the `-v $(pwd):/app` option that were added to the `docker run` command we used previously
-    - `command` - this should be the run command needed to start the application and it will override the `CMD` set in the `Dockerfile`
+**`client:` container configuration**
+
+1. `stdin_open: true` - is needed to allow the react application to use the warm reload when saving changes
+1. `build:` - allows us to set custom build settings for this particular container
+    - `context:` - sets the build context and if Docker configuration file is not set to a specific file it will look for a `Dockerfile` existing in the root of the directory defined in the context
+    - `dockerfile:` - give the path to the Docker configuration file that we are using for the client container, we'll come back to talk about the `Dockerfile.client`
+1. `ports:` - here we define the various ports that we want exposed from our container to our host
+    - `- HOST:CONTAINER` - the `HOST` port is the port that will be available on your computer @ `http://localhost:HOST` and `CONTAINER` represents that port that is being exposed inside the **Docker Container**
+    - this setting replaces the `-p 3001:3000 -p 35729:35729` options that were added to the `docker run` command we used previously
+1. `volumes:` - mounts host paths or named volumes, specified as sub-options to a service.
+    - this setting replaces the `-v $(pwd):/app` option that were added to the `docker run` command we used previously
+    - `- ./[LOCAL_DIRECTORY]:/[CONTAINER_DIRECTORY]`, first we define the local directory where we might be making file changes and then we define the location inside of the container to associate those changes to. The local and container directory paths **must be** separated by a `:` for this to process correctly
+    - `- './src:/app/client/src'`, helps watch for changes inside of the `/src` directory
+    - `- './public:/app/client/public'`, helps watch for changes inside of the `/public` directory
+    - `- '/app/client/node_modules'`, helps watch for changes to `/node_modules`
+1. `depends_on:` - allows us to define the various other containers that this **client** container depends on in order to run
+1. `command:` - this should be the run command needed to start the application and it will override the `CMD` set in the `Dockerfile`
+    - `npm run client` - it will run the `npm run client` command that we give it in the terminal inside of the **client** container
+
+**QUESTIONS???**
+
+For..
+
+```yml
+client:
+  stdin_open: true
+  build:
+    context: ./
+    dockerfile: ./Dockerfile.client
+```
+
+We quickly mentioned the `Dockerfile.client` that was being used to configure the client-side image for the environment. Let's take a minute to look at that file.
+
+#### Dockerfile for Client Container
+
+Normally the configuration for the Docker image is setup in a file just named `Dockerfile`. We have added the `.client` to `Dockerfile` because we were going to have multiple files for different containers and this is being use to separate them. The addition of `.client` only means something to us and doesn't mean anything to Docker.
+
+1. In order to set the base environment configuration for the client-side application container we we use an existing image from the [Docker Hub](https://hub.docker.com) using the `FROM` setting in the `Dockerfile.client`. In this case we are setting up a node environment to run `react-scripts` from `create-react-app` and install dependencies.
+
+    ```
+    # Base image we are modifying from https://hub.docker.com/
+    FROM node:14.15.4-alpine3.10
+    ```
+
+1. Makes a new directory and set it as the working directory for the Docker image. Once the working directory is set we can run command from inside the container in that directory.
+
+    ```
+    # Set working directory
+    RUN mkdir -p /app/client
+    WORKDIR /app/client
+    ```
+
+1. Copy over the existing `package.json` to the new working directory and install the application dependencies using `npm install`.
+
+    ```
+    # install and cache app dependencies
+    COPY ./package.json /app/client/package.json
+    RUN npm install
+    ```
+
+1. After dependency installation copy over all assets to the working directory.
+
+    ```
+    COPY . /app/client
+    ```
+
+1. Ensure that the default `create-react-app` port is exposed to the network created by Docker. Port 3000 is the port that `react-scripts` defaults to in order to run the react application and the 35729 port is the port used for warm reloading in `react-scripts`.
+
+    ```
+    # Exposing a specific PORT for viewing the application
+    EXPOSE 3000
+    EXPOSE 35729
+    ```
+
+1. Define the final command(s) that need to be run to kick off the application when the container launches.
+
+    ```
+    # Run final command to kick off client build
+    CMD ["npm", "run", "client"]
+    ```
 
 
 ### Docker Compose Commands
