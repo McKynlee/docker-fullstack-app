@@ -19,7 +19,8 @@ if (process.env.DATABASE_URL) {
     max: 10, // max number of clients in the pool
     idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
   };
-} else {
+} else if (process.env.POSTGRES_USER) {
+  // config for docker env
   config = {
     host: process.env.POSTGRES_HOST ? process.env.POSTGRES_HOST : 'localhost', // Server hosting the postgres database
     user: process.env.POSTGRES_USER ? process.env.POSTGRES_USER : 'postgres',
@@ -29,6 +30,11 @@ if (process.env.DATABASE_URL) {
     max: 10, // max number of clients in the pool
     idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
   };
+} else {
+  // config for local env
+  config = {
+    database: 'employee_portal'
+  }
 }
 
 // this creates the pool that will be shared by all other modules

@@ -4,8 +4,6 @@ import {
     Typography,
 } from '@material-ui/core';
 import ColorGenerator from '../../ColorGenerator/ColorGenerator';
-import FruitStand from '../../FruitStand/FruitStand';
-import EmployeesList from '../../EmployeesList/EmployeesList';
 
 class ToolBoxPage extends Component {
     render() {
@@ -30,35 +28,6 @@ class ToolBoxPage extends Component {
                     </Grid>
                 </div>
 
-                <div className="vr vr_x3">
-                    <Grid container spacing={3} justify="center">
-                        <Grid item xs={9}>
-                            <FruitStand />
-                        </Grid>
-                        <Grid item xs={3}>
-                            <Typography gutterBottom variant="h5" component="h3">
-                                Fruit Stand
-                            </Typography>
-
-                            <p>A generated fruit stand with a selection of fruit for a person to pick out their favorite fruits.</p>
-                        </Grid>
-                    </Grid>
-                </div>
-
-                <div className="vr vr_x3">
-                    <Grid container spacing={3} justify="center">
-                        <Grid item xs={3}>
-                            <Typography gutterBottom variant="h5" component="h3">
-                                Employees
-                            </Typography>
-
-                            <p>Showing a list of employee information that is being stored in a persistent database.</p>
-                        </Grid>
-                        <Grid item xs={9}>
-                            <EmployeesList />
-                        </Grid>
-                    </Grid>
-                </div>
             </div>
         );
     }

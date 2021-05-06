@@ -10,6 +10,7 @@ router.get('/', (req, res) => {
             res.send(response.rows);
         })
         .catch((err) => {
+            console.error(err);
             res.status(500);
             res.send({ error_message: err });
         });
