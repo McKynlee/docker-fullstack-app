@@ -7,10 +7,12 @@ services:
   ##     docker-compose up --build -d client
   ## ----------------------------------------
   client:
+    # to talk to server, axios.get('http://server:5000/api') - server container created by docker
     stdin_open: true
     build:
       context: ./
       dockerfile: ./Dockerfile.client
+      # Like running `docker -p 3000:3000`
     ports:
       - 3000:3000 # expose ports - HOST:CONTAINER (for create-react-app)
       - 35729:35729 # expose ports - HOST:CONTAINER (for serviceworker warm reloading)
@@ -29,15 +31,18 @@ services:
   ##     docker-compose up --build -d database
   ## ----------------------------------------
   database:
+    #Don't have to build container, because we use the one on Docker hub
     image: postgres:latest
     restart: always
     ports:
       - 54320:5432
+      # You could mount a .env file as a volume to protect secrets
     environment:
       POSTGRES_USER: dockerpguser
       POSTGRES_PASSWORD: linkAwake342
       POSTGRES_DB: employee_portal
       POSTGRES_HOST: localhost
+      #Volumes run create table and insert commands from files!
     volumes:
       - ./database/init.sql:/docker-entrypoint-initdb.d/10-init.sql
       - ./database/data.sql:/docker-entrypoint-initdb.d/20-data.sql
